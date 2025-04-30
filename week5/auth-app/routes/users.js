@@ -20,6 +20,13 @@ const authMiddleware = (req, res, next) => {
     }
 }
 
+const adminOnly = (req, res, next) => {
+    if (req.user.roles.includes('admin')) {
+        return next();
+    }
+    return res.sendStatus(403);
+};
+
 router.get('/', authMiddleware, async (req, res) => {
     const users = await UserDAO.getAll();
     return res.send(users);
@@ -43,20 +50,21 @@ router.post('/login', async (req, res) => {
         return res.sendStatus(401);
     }
 
-    const twoFactorAuthCode = '40400';
-    await UserDAO.addTwoFactorAuthCode(email, twoFactorAuthCode);
+    // const twoFactorAuthCode = '40400';
+    // await UserDAO.addTwoFactorAuthCode(email, twoFactorAuthCode);
 
-    return res.send({
-        message: 'Verify 2 factor auth',
-        link: '/users/verify',
-    });
+    // return res.send({
+    //     message: 'Verify 2 factor auth',
+    //     link: '/users/verify',
+    // });
 
-    // const token = jwt.sign({
-    //     email: user.email,
-    //     userId: user._id,
-    // }, process.env.JWT_SECRET, {expiresIn: '30m'});
+    const token = jwt.sign({
+        email: user.email,
+        userId: user._id,
+        roles: user.roles, // add roles
+    }, process.env.JWT_SECRET, {expiresIn: '30m'});
 
-    // return res.send({token});
+    return res.send({token});
 });
 
 router.post('/verify', async (req, res) => {
@@ -72,6 +80,37 @@ router.post('/verify', async (req, res) => {
     }, process.env.JWT_SECRET, {expiresIn: '30m'});
 
     return res.send({token});
+});
+
+// PATCH /some-user-id/password
+router.patch('/:id/password', authMiddleware, async (req, res) => {
+    const userIdToUpdate = req.params.id;
+    const loggedInUserId = req.user.userId;
+    
+    // Is the user authorized with the correct role to access the id?
+    // If so, change the password and return 200
+    if (userIdToUpdate === loggedInUserId || req.user.roles.includes('admin')) {
+        await UserDAO.changePassword(userIdToUpdate, req.body.password);
+        return res.sendStatus(200);
+    }
+
+    // If not, return forbidden (403)
+    return res.sendStatus(403);
+});
+
+// PATCH /some-user-id
+router.patch('/:id', authMiddleware, adminOnly, async (req, res) => {
+    // req = {
+    //     body: {
+    //         roles: ['admin']
+    //     }
+    // }
+
+    const {roles} = req.body;
+    const {id} = req.params;
+    
+    await UserDAO.updateRoles(id, roles);
+    return res.sendStatus(200);
 });
 
 module.exports = router;

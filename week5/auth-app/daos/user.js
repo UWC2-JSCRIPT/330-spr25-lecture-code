@@ -5,8 +5,18 @@ module.exports = {};
 
 module.exports.create = async (email, plaintextPassword) => {
     const hashedPassword = await bcrypt.hash(plaintextPassword, 10);
-    const user = await User.create({email, password: hashedPassword});
+    const user = await User.create({email, password: hashedPassword, roles: ['user']});
     return user;
+}
+
+module.exports.updateRoles = async (userId, newRoles) => {
+    // await User.findByIdAndUpdate(userId, {roles}, {runValidators: true});
+    await User.updateOne({_id: userId}, {$addToSet: {roles: {$each: newRoles}}});
+}
+
+module.exports.changePassword = async (userId, plaintextPassword) => {
+    const hashedPassword = await bcrypt.hash(plaintextPassword, 10);
+    await User.updateOne({_id: userId}, {password: hashedPassword});
 }
 
 module.exports.addTwoFactorAuthCode = async (email, authCode) => {
