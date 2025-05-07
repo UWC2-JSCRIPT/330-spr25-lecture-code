@@ -49,6 +49,7 @@ module.exports.login = async (email, plaintextPassword) => {
     }
 
     const hasValidPassword = await bcrypt.compare(plaintextPassword, user.password);
+
     if (hasValidPassword) {
         return user;
     } else {
