@@ -1,0 +1,12 @@
+<html>
+    <body>
+        <h1>Hello World!</h1>
+        <p>Server start date: {{date}}</p>
+        <input value="{{searchTerm}}" />
+        <ul>
+            {{# blogPosts }}
+                {{> partials/blogPost}}
+            {{/ blogPosts }}
+        </ul>
+    </body>
+</html>
